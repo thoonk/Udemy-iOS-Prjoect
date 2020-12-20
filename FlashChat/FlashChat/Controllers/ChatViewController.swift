@@ -26,7 +26,7 @@ class ChatViewController: UIViewController {
         title = K.appName
         
         tableView.dataSource = self
-        tableView.delegate = self
+//        tableView.delegate = self
         
         tableView.register(UINib(nibName: K.cellNibName, bundle: nil), forCellReuseIdentifier: K.cellIdentifier)
         
@@ -34,10 +34,21 @@ class ChatViewController: UIViewController {
         
     }
     
+//    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+//        self.view.endEditing(true)
+//    }
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        view.resignFirstResponder()
+    }
+    
     func loadMessages() {
-        messages = []
         
-        db.collection(K.FStore.collectionName).getDocuments { (querySnapshot, error) in
+        db.collection(K.FStore.collectionName)
+            .order(by: K.FStore.dateField)
+            .addSnapshotListener { (querySnapshot, error) in
+            
+            self.messages = []
+            
             if let e = error {
                 print("retrieving data Issue, \(e)")
             } else {
@@ -62,7 +73,9 @@ class ChatViewController: UIViewController {
     @IBAction func sendPressed(_ sender: UIButton) {
         
         if let messageBody = messageTextfield.text, let messageSender = Auth.auth().currentUser?.email {
-            db.collection(K.FStore.collectionName).addDocument(data: [K.FStore.senderField: messageSender, K.FStore.bodyField: messageBody]) { (error) in
+            db.collection(K.FStore.collectionName).addDocument(data: [K.FStore.senderField: messageSender, K.FStore.bodyField: messageBody,
+                K.FStore.dateField: Date().timeIntervalSince1970
+            ]) { (error) in
                 if let e = error {
                     print("firestore error, \(e)")
                 } else {
@@ -98,8 +111,3 @@ extension ChatViewController: UITableViewDataSource {
     }
 }
 
-extension ChatViewController: UITableViewDelegate {
-    func tableView(_ tableView: UITableView, didDeselectRowAt indexPath: IndexPath) {
-        messageTextfield.endEditing(true)
-    }
-}
